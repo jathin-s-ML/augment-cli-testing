@@ -1,0 +1,25 @@
+📅 Fetched start_date: 2026-01-06 12:51:41.086413, trigger: manual
+📋 Recorded fault ledger: Fault Memory Stress Search Service on search-service (severity: high, duration: None) - Session: fault_memory_stress_search_service_manual__2026-01-06T12:51:41.004271+00:00
+🔍 Processing...
+📤 POST to SRE: 422
+🔗 POST URL: http://135.232.101.211:8080/v1/fault-ledger
+❌ SRE API failed: 422 - {"detail":[{"type":"float_type","loc":["body","configured_duration"],"msg":"Input should be a valid number","input":null}]}
+🔔 Workflow notification: fault_memory_stress_search_service | manual__2026-01-06T12:51:41.004271+00:00 | running | UPDATE
+🔔 Workflow notification: fault_memory_stress_search_service | manual__2026-01-06T12:51:41.004271+00:00 | success | UPDATE
+📋 Updated fault ledger: fault_memory_stress_search_service_manual__2026-01-06T12:51:41.004271+00:00 -> completed
+📤 PUT to SRE: 404
+🔗 PUT URL: http://135.232.101.211:8080/v1/fault-ledger/fault_memory_stress_search_service_manual__2026-01-06T12%3A51%3A41.004271%2B00%3A00
+❌ SRE API failed: 404 - {"detail":"Fault ledger entry not found for session_id: fault_memory_stress_search_service_manual__2026-01-06T12:51:41.004271+00:00"}
+🔔 Workflow notification: fault_memory_stress_search_service | manual__2026-01-06T13:04:16.174982+00:00 | queued | INSERT
+📅 Fetched start_date: 2026-01-06 13:04:16.276611, trigger: manual
+📋 Recorded fault ledger: Fault Memory Stress Search Service on search-service (severity: high, duration: None) - Session: fault_memory_stress_search_service_manual__2026-01-06T13:04:16.174982+00:00
+📤 POST to SRE: 422
+🔗 POST URL: http://135.232.101.211:8080/v1/fault-ledger
+❌ SRE API failed: 422 - {"detail":[{"type":"float_type","loc":["body","configured_duration"],"msg":"Input should be a valid number","input":null}]}
+🔔 Workflow notification: fault_memory_stress_search_service | manual__2026-01-06T13:04:16.174982+00:00 | running | UPDATE
+🔔 Workflow notification: fault_memory_stress_search_service | manual__2026-01-06T13:04:16.174982+00:00 | success | UPDATE
+📋 Updated fault ledger: fault_memory_stress_search_service_manual__2026-01-06T13:04:16.174982+00:00 -> completed
+📤 PUT to SRE: 404
+🔗 PUT URL: http://135.232.101.211:8080/v1/fault-ledger/fault_memory_stress_search_service_manual__2026-01-06T12%3A51%3A41.004271%2B00%3A00
+❌ SRE API failed: 404 - {"detail":"Fault ledger entry not found for session_id: fault_memory_stress_search_service_manual__2026-01-06T13:04:16.174982+00:00"}
+
