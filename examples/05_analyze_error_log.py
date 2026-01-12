@@ -76,30 +76,57 @@ def main():
     print("\nInitializing Auggie SDK...")
     sdk = Auggie(model="sonnet4.5")
     
-    # Analyze the error log
-    print("\n🔍 Analyzing error log and searching repository...\n")
-    
-    result = sdk.run(
+    # Step 1: Analyze the error log (without searching repo yet)
+    print("\n🔍 Step 1: Analyzing error log...\n")
+
+    analysis = sdk.run(
         f"""
-        I have an error log from the repository {repo}. Please analyze it and help me find the root cause.
-        
+        Analyze this error log and identify the main issues:
+
         ERROR LOG:
         ```
         {error_log}
         ```
-        
-        Please:
-        1. Identify the main error/issue from the log
-        2. Search the {repo} repository for the code that's causing this error
-        3. Show me the exact file(s) and line(s) where the bug is
-        4. Explain what's wrong
-        5. Suggest how to fix it
-        
-        Be specific - show me the actual code snippets from the repository.
+
+        Please provide:
+        1. What is the main error?
+        2. What API endpoint is failing?
+        3. What is the error code and message?
+        4. What might be the root cause based on the error message?
+
+        Keep your response concise (under 500 words).
         """,
-        return_type=str
+        return_type=str,
+        timeout=120
     )
-    
+
+    print("=" * 80)
+    print("ANALYSIS:")
+    print("=" * 80)
+    print(analysis)
+    print("=" * 80)
+
+    # Step 2: Search for the specific code
+    print("\n🔍 Step 2: Searching repository for the problematic code...\n")
+
+    result = sdk.run(
+        f"""
+        Based on this error analysis:
+        {analysis}
+
+        Search the {repo} repository and find:
+        1. The file that makes the POST/PUT request to the SRE API
+        2. Show me the exact code that's sending 'configured_duration' as null
+
+        Keep your response focused - just show the relevant file path and code snippet.
+        """,
+        return_type=str,
+        timeout=300
+    )
+
+    print("=" * 80)
+    print("ROOT CAUSE:")
+    print("=" * 80)
     print(result)
     print("\n" + "=" * 80)
 

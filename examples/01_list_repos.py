@@ -43,7 +43,7 @@ def main():
 
     result = sdk.run(
         """
-        List all my GitHub repositories.
+        List all my GitHub repositories also include forked repos too.
         For each repository, show:
         - Repository name
         - Visibility (public/private)
