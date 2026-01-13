@@ -41,7 +41,7 @@ class AugmentTool:
             Result from Augment SDK
         """
         try:
-            # Always use session for conversation continuity
+            # Use session for conversation continuity
             if self._session_context is None:
                 # Create the context manager
                 self._session_context = self.sdk.session()

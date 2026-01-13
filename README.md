@@ -1,49 +1,61 @@
 # LangGraph Agent with Augment SDK
 
-A LangGraph-based agent that integrates with Augment SDK to perform GitHub operations, code reviews, and error analysis with session-based conversation continuity.
+A LangGraph-based agent that integrates with Augment SDK to perform GitHub operations, code reviews, and error analysis with session-based conversation continuity and intelligent result detection.
 
 ## 🏗️ Architecture
 
-The agent uses a 5-node workflow with proper data flow:
+The agent uses a **simplified 3-node workflow** with smart auto-detection:
 
 ```
 User Input
     ↓
-┌─────────────────────────┐
-│    Planner Node         │  ← Classifies task type
-│  (task → task_type)     │     (list_repos, code_review, error_analysis, general_query)
-└───────────┬─────────────┘
-            ↓
-┌─────────────────────────┐
-│  Augment Executor Node  │  ← Executes via Augment SDK with session
-│  (task → augment_result)│     Creates/maintains session for continuity
-└───────────┬─────────────┘
-            ↓
-┌─────────────────────────┐
-│    Analyzer Node        │  ← Processes and enriches results
-│  (augment_result →      │     • list_repos: Counts repos, adds metadata
-│   analysis)             │     • code_review: Adds structured headers
-│                         │     • error_analysis: Adds next steps
-└───────────┬─────────────┘
-            ↓
-┌─────────────────────────┐
-│   Formatter Node        │  ← Formats final output
-│  (analysis →            │     Adds metadata footer for complex tasks
-│   final_output)         │
-└───────────┬─────────────┘
-            ↓
-┌─────────────────────────┐
-│    Cleanup Node         │  ← Ends Augment SDK session
-│  (session cleanup)      │     Releases resources
-└───────────┬─────────────┘
-            ↓
-       Final Output
+┌─────────────────────────────────┐
+│   Augment Executor Node         │  ← Executes via Augment SDK
+│   (task → augment_result)       │     • Creates/maintains session
+│                                 │     • Passes task to Augment SDK
+│                                 │     • Returns raw result
+└────────────┬────────────────────┘
+             ↓
+┌─────────────────────────────────┐
+│   Analyzer Node                 │  ← Auto-detects & formats
+│   (augment_result →             │     • Inspects data structure
+│    final_output)                │     • Detects: PRs, repos, reviews, errors
+│                                 │     • Adds appropriate headers
+│                                 │     • Formats with metadata
+└────────────┬────────────────────┘
+             ↓
+┌─────────────────────────────────┐
+│   Cleanup Node                  │  ← Ends session
+│   (session cleanup)             │     • Releases resources
+│                                 │     • Ends Augment SDK session
+└────────────┬────────────────────┘
+             ↓
+        Final Output
 ```
 
 **Data Flow:**
 ```
-task → task_type → augment_result → analysis → final_output
+task → augment_result → final_output (auto-detected type)
 ```
+
+**Key Features:**
+- ✅ **No manual classification** - Augment SDK understands intent
+- ✅ **Smart detection** - Analyzer inspects data structure to determine type
+- ✅ **Session-based** - All tasks use sessions for context continuity
+- ✅ **3 nodes only** - Simplified from 5 nodes
+
+## 🎯 Features
+
+- **LangGraph Workflow**: Simplified 3-node agent workflow
+- **Augment SDK Integration**: Seamless integration with Augment SDK
+- **Session Management**: Maintains conversation context across ALL queries
+- **Smart Auto-Detection**: Automatically detects result type by inspecting data structure
+  - Pull Requests: Detects `number`, `head_branch`, `state` fields
+  - Repositories: Detects `name`, `owner`, `permissions` fields
+  - Code Reviews: Detects review-related keywords
+  - Error Analysis: Detects error/exception keywords
+- **Structured Output**: Formatted results with appropriate headers and metadata
+- **Error Handling**: Robust error handling with safe fallbacks
 
 ## 📦 Installation
 
@@ -91,11 +103,14 @@ GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxx python examples/01_simple_query.py 2>/dev/n
 
 **Output:**
 ```
-## Repository Listing
+## Pull Requests
 
-Found 1 repositories:
+Found 1 pull request(s):
 
-[{'name': 'fault-injector', 'owner': 'maplelabs', ...}]
+[{'number': 1, 'title': 'basic sdk', 'state': 'open', 'author': 'jathin-s-ML', ...}]
+
+---
+*Generated using Augment SDK via LangGraph Agent*
 ```
 
 ### Example 2: Code Review (Coming Soon)
@@ -112,7 +127,7 @@ python examples/03_error_analysis.py owner/repo error.log
 
 ### Example 4: Complete Node Workflow Demo
 
-See all 5 nodes in action with detailed state tracking:
+See all 3 nodes in action with detailed state tracking:
 
 ```bash
 GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxx python examples/04_node_workflow_demo.py 2>/dev/null
@@ -120,8 +135,9 @@ GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxx python examples/04_node_workflow_demo.py 2>
 
 This example shows:
 - Initial state
-- State changes at each node
+- State changes at each node (executor → analyzer → cleanup)
 - Data flow through the pipeline
+- Auto-detection of result types
 - Session management
 - Final result with metadata
 
@@ -131,10 +147,8 @@ This example shows:
 Defines the agent state schema with the following fields:
 - `messages`: Conversation history (accumulated)
 - `task`: Current task description
-- `task_type`: Classified task type (list_repos, code_review, error_analysis, general_query)
 - `augment_result`: Raw result from Augment SDK
-- `analysis`: Processed and enriched result from analyzer
-- `final_output`: Final formatted output for user
+- `final_output`: Final formatted output (auto-detected type)
 - `session_id`: Augment SDK session ID for conversation continuity
 - `metadata`: Additional context
 
@@ -157,38 +171,31 @@ GitHub-specific operations using Augment SDK:
 
 ### Nodes (`agent/nodes.py`)
 
-#### 1. `planner_node`
+#### 1. `augment_executor_node`
 - **Input:** `task`
-- **Output:** `task_type`
-- **Function:** Classifies task into: list_repos, code_review, error_analysis, or general_query
-
-#### 2. `augment_executor_node`
-- **Input:** `task`, `task_type`
 - **Output:** `augment_result`, `session_id`
 - **Function:** Executes task via Augment SDK with session (always enabled)
+- **Note:** No task classification needed - Augment SDK understands intent
 
-#### 3. `analyzer_node`
-- **Input:** `augment_result`, `task_type`
-- **Output:** `analysis`
-- **Function:** Processes and enriches results:
-  - `list_repos`: Counts repositories and adds metadata header
-  - `code_review`: Adds "Code Review Analysis" header + summary
-  - `error_analysis`: Adds "Error Analysis Report" header + next steps
-  - `general_query`: Passes through as-is
-
-#### 4. `formatter_node`
-- **Input:** `analysis`, `task_type`
+#### 2. `analyzer_node`
+- **Input:** `augment_result`
 - **Output:** `final_output`
-- **Function:** Formats final output with metadata footer for complex tasks
+- **Function:** Auto-detects result type and formats output:
+  - **Pull Requests**: Detects `number` + `head_branch` fields → "## Pull Requests" header
+  - **Repositories**: Detects `name` + `owner` + `permissions` fields → "## Repositories" header
+  - **Code Review**: Detects review keywords → "## Code Review Analysis" header
+  - **Error Analysis**: Detects error keywords → "## Error Analysis Report" header
+  - **General**: Unknown type → passes through as-is
+- **Note:** Combines analysis + formatting in one step
 
-#### 5. `cleanup_node`
+#### 3. `cleanup_node`
 - **Input:** `session_id`
 - **Output:** None
 - **Function:** Ends Augment SDK session and releases resources
 
 ### Graph (`agent/graph.py`)
 - Defines the LangGraph workflow
-- Connects nodes in sequence: planner → executor → analyzer → formatter → cleanup
+- Connects nodes in sequence: **executor → analyzer → cleanup** (3 nodes)
 - Manages state transitions between nodes
 
 ## 🎯 Features
@@ -197,11 +204,12 @@ GitHub-specific operations using Augment SDK:
 - **LangGraph state management**: Full state tracking across all nodes
 - **Augment SDK integration**: Seamless integration with session support
 - **Session continuity**: All tasks use sessions for conversation context
-- **Task classification**: Automatic routing based on task type
-- **Result processing**: Analyzer node enriches results with context
-- **Structured output**: Formatted output with headers and metadata
-- **Error handling**: Graceful error handling in all nodes
+- **Smart auto-detection**: Automatically detects result type from data structure (no manual classification)
+- **Result processing**: Analyzer node auto-detects type and enriches results
+- **Structured output**: Formatted output with auto-detected headers and metadata
+- **Error handling**: Graceful error handling with safe fallbacks
 - **Resource cleanup**: Automatic session cleanup
+- **Simplified workflow**: 3 nodes instead of 5 (removed planner and formatter)
 
 ### ⏳ Coming Soon
 - Conditional routing based on task complexity
@@ -211,50 +219,74 @@ GitHub-specific operations using Augment SDK:
 
 ## Data Flow Example
 
-Here's how data flows through the system for a "list repos" task:
+Here's how data flows through the simplified 3-node system:
+
+### Example 1: List Pull Requests
+
+```python
+# 1. Initial State
+{
+    "task": "List all the open prs in augment-cli-testing repo",
+    "augment_result": None,
+    "final_output": None,
+    "session_id": None
+}
+
+# 2. After Augment Executor Node
+{
+    "augment_result": "[{'number': 1, 'title': 'basic sdk', 'state': 'open', 'head_branch': 'dev', ...}]",
+    "session_id": "abc-123-def"  # ← Session created
+}
+
+# 3. After Analyzer Node (auto-detects PRs from 'number' + 'head_branch' fields)
+{
+    "final_output": """## Pull Requests
+
+Found 1 pull request(s):
+
+[{'number': 1, 'title': 'basic sdk', ...}]
+
+---
+*Generated using Augment SDK via LangGraph Agent*
+"""
+}
+
+# 4. After Cleanup Node
+# Session ended, resources cleaned up
+```
+
+### Example 2: List Repositories
 
 ```python
 # 1. Initial State
 {
     "task": "List my GitHub repositories",
-    "task_type": None,
     "augment_result": None,
-    "analysis": None,
     "final_output": None,
     "session_id": None
 }
 
-# 2. After Planner Node
+# 2. After Augment Executor Node
 {
-    "task_type": "list_repos"  # ← Classified
+    "augment_result": "[{'name': 'repo1', 'owner': 'user', 'permissions': {...}, ...}]",
+    "session_id": "xyz-456-abc"
 }
 
-# 3. After Augment Executor Node
+# 3. After Analyzer Node (auto-detects repos from 'name' + 'owner' + 'permissions' fields)
 {
-    "augment_result": "[{'name': 'repo1', 'stars': 10}, ...]",  # ← Raw result
-    "session_id": "abc-123-def"  # ← Session created
+    "final_output": """## Repositories
+
+Found 19 repository(ies):
+
+[{'name': 'repo1', 'owner': 'user', ...}]
+
+---
+*Generated using Augment SDK via LangGraph Agent*
+"""
 }
 
-# 4. After Analyzer Node
-{
-    "analysis": """## Repository Listing
-
-Found 2 repositories:
-
-[{'name': 'repo1', 'stars': 10}, ...]"""  # ← Enriched with metadata
-}
-
-# 5. After Formatter Node
-{
-    "final_output": """## Repository Listing
-
-Found 2 repositories:
-
-[{'name': 'repo1', 'stars': 10}, ...]"""  # ← Final formatted output
-}
-
-# 6. After Cleanup Node
-# Session ended, resources released
+# 4. After Cleanup Node
+# Session ended
 ```
 
 ## 🔐 Session Management

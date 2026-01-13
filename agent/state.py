@@ -10,32 +10,33 @@ import operator
 class AgentState(TypedDict):
     """
     State schema for the agent workflow.
-    
+
+    Simplified state with 3-node workflow:
+    - augment_executor: Executes task and stores augment_result + session_id
+    - analyzer: Auto-detects type and creates final_output
+    - cleanup: Ends session
+
     Attributes:
-        messages: Conversation history
+        messages: Conversation history (accumulated)
         task: Current task description
-        task_type: Type of task (code_review, error_analysis, repo_query, etc.)
-        augment_result: Result from Augment SDK
-        analysis: Analysis of the Augment result
-        final_output: Final formatted output
+        augment_result: Raw result from Augment SDK
+        final_output: Final formatted output (auto-detected type)
         session_id: Augment SDK session ID for continuity
         metadata: Additional metadata
     """
     # Messages are accumulated using operator.add
     messages: Annotated[Sequence[BaseMessage], operator.add]
-    
+
     # Task information
     task: str
-    task_type: Optional[str]
-    
-    # Results from different nodes
+
+    # Results from nodes
     augment_result: Optional[str]
-    analysis: Optional[str]
     final_output: Optional[str]
-    
+
     # Session management
     session_id: Optional[str]
-    
+
     # Additional context
     metadata: Optional[Dict[str, Any]]
 

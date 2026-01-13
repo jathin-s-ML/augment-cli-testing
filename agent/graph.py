@@ -5,10 +5,8 @@ LangGraph workflow definition.
 from langgraph.graph import StateGraph, END
 from .state import AgentState
 from .nodes import (
-    planner_node,
     augment_executor_node,
     analyzer_node,
-    formatter_node,
     cleanup_node
 )
 
@@ -16,39 +14,33 @@ from .nodes import (
 def create_agent_graph():
     """
     Create the LangGraph agent workflow.
-    
-    Workflow:
-    1. Planner: Classify the task
-    2. Augment Executor: Execute using Augment SDK
-    3. Analyzer: Process the result
-    4. Formatter: Format for user
-    5. Cleanup: Clean up resources
-    
+
+    Simplified 3-node workflow:
+    1. Augment Executor: Execute using Augment SDK with session
+    2. Analyzer: Auto-detect result type, format output with headers
+    3. Cleanup: End session and clean up resources
+
     Returns:
         Compiled LangGraph workflow
     """
     # Create the graph
     workflow = StateGraph(AgentState)
-    
-    # Add nodes
-    workflow.add_node("planner", planner_node)
+
+    # Add nodes (3 nodes only)
     workflow.add_node("augment_executor", augment_executor_node)
     workflow.add_node("analyzer", analyzer_node)
-    workflow.add_node("formatter", formatter_node)
     workflow.add_node("cleanup", cleanup_node)
-    
+
     # Define the flow
-    workflow.set_entry_point("planner")
-    
-    # Linear flow for now (can add conditional edges later)
-    workflow.add_edge("planner", "augment_executor")
+    workflow.set_entry_point("augment_executor")
+
+    # Linear flow: executor → analyzer → cleanup
     workflow.add_edge("augment_executor", "analyzer")
-    workflow.add_edge("analyzer", "formatter")
-    workflow.add_edge("formatter", "cleanup")
+    workflow.add_edge("analyzer", "cleanup")
     workflow.add_edge("cleanup", END)
-    
+
     # Compile the graph
     app = workflow.compile()
-    
+
     return app
 
